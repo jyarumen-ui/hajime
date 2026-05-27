@@ -1,13 +1,15 @@
 'use client'
 
 import type { Message } from '@/types'
-import { EXECUTIVE_INFO } from '@/lib/executives'
+import { EXECUTIVE_INFO, parseChoices } from '@/lib/executives'
 
 interface Props {
   message: Message
+  isStreaming?: boolean
+  onChoice?: (choice: string) => void
 }
 
-export default function ChatBubble({ message }: Props) {
+export default function ChatBubble({ message, isStreaming, onChoice }: Props) {
   const isUser = message.role === 'user'
   const exec = message.executiveRole ? EXECUTIVE_INFO[message.executiveRole] : null
 
@@ -22,9 +24,12 @@ export default function ChatBubble({ message }: Props) {
     )
   }
 
+  const { text, choices } = isStreaming ? { text: message.content, choices: [] } : parseChoices(message.content)
+  const showChoices = !isStreaming && choices.length > 0 && onChoice
+
   return (
     <div className="flex justify-start mb-3">
-      <div className="max-w-[85%]">
+      <div className="max-w-[90%]">
         {exec && (
           <div className="flex items-center gap-1 mb-1 ml-1">
             <span className="text-xs">{exec.emoji}</span>
@@ -32,8 +37,39 @@ export default function ChatBubble({ message }: Props) {
           </div>
         )}
         <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow-sm text-gray-800 whitespace-pre-wrap">
-          {message.content}
+          {text}
+          {isStreaming && (
+            <span className="inline-flex gap-0.5 ml-1">
+              <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </span>
+          )}
         </div>
+
+        {showChoices && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            {choices.map((choice, i) => (
+              <button
+                key={i}
+                onClick={() => onChoice(choice)}
+                className="text-left text-xs px-3 py-2 rounded-xl border transition-all hover:shadow-sm active:scale-95"
+                style={{
+                  borderColor: exec?.color ?? '#ddd',
+                  color: exec?.color ?? '#333',
+                  backgroundColor: `${exec?.color ?? '#ccc'}10`,
+                }}>
+                <span className="font-bold mr-1.5">{i + 1}.</span>{choice}
+              </button>
+            ))}
+            <button
+              onClick={() => onChoice('')}
+              className="text-left text-xs px-3 py-2 rounded-xl border border-dashed transition-all hover:bg-gray-50 text-gray-400"
+              style={{ borderColor: '#ccc' }}>
+              ✏️ その他（自由入力）
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

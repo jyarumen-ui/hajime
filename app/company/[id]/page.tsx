@@ -16,6 +16,8 @@ export default function CompanyPage() {
   const [activeRole, setActiveRole] = useState<ExecutiveRole>('CEO')
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [streamingId, setStreamingId] = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -34,13 +36,14 @@ export default function CompanyPage() {
   const messages = company?.conversations[activeRole] ?? []
   const execInfo = EXECUTIVE_INFO[activeRole]
 
-  async function send() {
-    if (!input.trim() || isLoading || !company) return
+  async function send(override?: string) {
+    const content = (override ?? input).trim()
+    if (!content || isLoading || !company) return
 
     const userMsg: Message = {
       id: uuidv4(),
       role: 'user',
-      content: input.trim(),
+      content,
       timestamp: Date.now(),
     }
 
@@ -85,6 +88,7 @@ export default function CompanyPage() {
       addMessage(company.id, activeRole, assistantMsg)
       const withNew = getCompany(company.id)!
       setCompany({ ...withNew })
+      setStreamingId(assistantMsg.id)
 
       while (true) {
         const { done, value } = await reader.read()
@@ -148,7 +152,16 @@ export default function CompanyPage() {
       setCompany({ ...getCompany(company.id)! })
     } finally {
       setIsLoading(false)
+      setStreamingId(null)
     }
+  }
+
+  function handleChoice(choice: string) {
+    if (choice === '') {
+      inputRef.current?.focus()
+      return
+    }
+    send(choice)
   }
 
   if (!company) return null
@@ -196,10 +209,15 @@ export default function CompanyPage() {
             </p>
           </div>
         )}
-        {messages.map(msg => (
-          <ChatBubble key={msg.id} message={msg} />
+        {messages.map((msg, i) => (
+          <ChatBubble
+            key={msg.id}
+            message={msg}
+            isStreaming={msg.id === streamingId}
+            onChoice={i === messages.length - 1 ? handleChoice : undefined}
+          />
         ))}
-        {isLoading && (
+        {isLoading && !streamingId && (
           <div className="flex justify-start mb-3">
             <div className="bg-white rounded-2xl px-4 py-3 shadow-sm flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -215,6 +233,7 @@ export default function CompanyPage() {
       <div className="px-4 pb-6 pt-2">
         <div className="flex gap-2 items-end bg-white rounded-2xl px-3 py-2 shadow-sm">
           <textarea
+            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => {
@@ -229,7 +248,7 @@ export default function CompanyPage() {
             style={{ maxHeight: '120px' }}
           />
           <button
-            onClick={send}
+            onClick={() => send()}
             disabled={!input.trim() || isLoading}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-40"
             style={{ backgroundColor: execInfo.color }}>

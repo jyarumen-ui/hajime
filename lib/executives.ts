@@ -8,6 +8,15 @@ export const EXECUTIVE_INFO: Record<ExecutiveRole, { name: string; title: string
   CFO: { name: '最高財務責任者CFO', title: '財務計画・資金調達', color: '#1A6B3A', emoji: '💰' },
 }
 
+const CHOICE_INSTRUCTION = `
+
+【重要・必須ルール】
+毎回の返答の最後に、代表が次に考えるべき重要な問いを1つ設け、以下のJSON形式で選択肢を必ず出力すること。専門知識がなくても選べるよう、選択肢は平易な言葉で具体的に書くこと。
+
+CHOICES:["選択肢1（15字以内）","選択肢2","選択肢3","選択肢4","選択肢5"]
+
+このCHOICES行は返答の最後の1行に必ず入れること。JSON形式を厳守すること。`
+
 export function getSystemPrompt(role: ExecutiveRole, companyName: string, concept: string): string {
   const base = `あなたは「${companyName}」（${concept}）のAI執行役員です。代表取締役の下で自律稼働し、日本語で具体的・実務的な回答をしてください。回答は簡潔に、箇条書きや構造化された形式を使い、すぐに実行できるアクションを含めてください。`
 
@@ -19,7 +28,7 @@ export function getSystemPrompt(role: ExecutiveRole, companyName: string, concep
 - 他の役員（COO/CTO/CMO/CFO）への指示・調整
 - 代表者（ユーザー）のビジョンを具体的な戦略に落とし込む
 - 外部パートナーシップ・投資家対応
-- 毎回、次のアクションを3つ提示し、優先度を明示すること`,
+- 毎回、次のアクションを3つ提示し、優先度を明示すること${CHOICE_INSTRUCTION}`,
 
     COO: `${base}
 
@@ -29,7 +38,7 @@ export function getSystemPrompt(role: ExecutiveRole, companyName: string, concep
 - KPI設定とモニタリング体制構築
 - プロダクト開発のスプリント管理
 - 顧客サポート体制の確立
-- 毎回、具体的なOKR/KPIの数値目標を含めること`,
+- 毎回、具体的なOKR/KPIの数値目標を含めること${CHOICE_INSTRUCTION}`,
 
     CTO: `${base}
 
@@ -39,7 +48,7 @@ export function getSystemPrompt(role: ExecutiveRole, companyName: string, concep
 - セキュリティ・スケーラビリティ・パフォーマンス設計
 - MVP開発のスコープ定義と技術的実現可能性評価
 - インフラコスト最適化
-- 毎回、具体的な技術スタック名・ライブラリ名を挙げること`,
+- 毎回、具体的な技術スタック名・ライブラリ名を挙げること${CHOICE_INSTRUCTION}`,
 
     CMO: `${base}
 
@@ -49,7 +58,7 @@ export function getSystemPrompt(role: ExecutiveRole, companyName: string, concep
 - コンテンツマーケティング・SEO戦略
 - グロースハック施策・バイラルループ設計
 - 広告予算配分・ROI最大化
-- 毎回、具体的なKPI（CAC, LTV, CVR等）と施策コストを含めること`,
+- 毎回、具体的なKPI（CAC, LTV, CVR等）と施策コストを含めること${CHOICE_INSTRUCTION}`,
 
     CFO: `${base}
 
@@ -59,8 +68,19 @@ export function getSystemPrompt(role: ExecutiveRole, companyName: string, concep
 - ランウェイ管理と資金使途最適化
 - 投資家向けピッチデック財務セクション
 - コスト構造最適化と収益化戦略
-- 毎回、具体的な数値（月次バーンレート、ランウェイ月数等）を含めること`,
+- 毎回、具体的な数値（月次バーンレート、ランウェイ月数等）を含めること${CHOICE_INSTRUCTION}`,
   }
 
   return rolePrompts[role]
+}
+
+export function parseChoices(content: string): { text: string; choices: string[] } {
+  const match = content.match(/\nCHOICES:(\[[\s\S]*?\])\s*$/)
+  if (!match) return { text: content, choices: [] }
+  try {
+    const choices: string[] = JSON.parse(match[1])
+    return { text: content.slice(0, match.index).trimEnd(), choices }
+  } catch {
+    return { text: content, choices: [] }
+  }
 }
