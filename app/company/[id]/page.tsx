@@ -61,6 +61,7 @@ export default function CompanyPage() {
           role: activeRole,
           companyContext: { name: company.name, concept: company.concept },
           allConversations: updated.conversations,
+          summary: updated.summaries?.[activeRole],
         }),
       })
 
@@ -108,6 +109,30 @@ export default function CompanyPage() {
       )
       const { saveCompany, getCompanies } = await import('@/lib/store')
       saveCompany(finalCompany)
+
+      // 16件超えたら古いメッセージを自動要約
+      const allMsgs = finalCompany.conversations[activeRole]
+      if (allMsgs.length > 16) {
+        const toSummarize = allMsgs.slice(0, allMsgs.length - 8)
+        const keep = allMsgs.slice(allMsgs.length - 8)
+        const sumRes = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: toSummarize,
+            role: activeRole,
+            companyName: finalCompany.name,
+          }),
+        }).catch(() => null)
+        if (sumRes?.ok) {
+          const { summary } = await sumRes.json()
+          finalCompany.summaries = { ...finalCompany.summaries, [activeRole]: summary }
+          finalCompany.conversations[activeRole] = keep
+          saveCompany(finalCompany)
+          setCompany({ ...finalCompany })
+        }
+      }
+
       // バックグラウンドで同期
       const { pushSync } = await import('@/lib/sync')
       pushSync(getCompanies()).catch(() => {})

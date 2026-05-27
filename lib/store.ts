@@ -7,7 +7,9 @@ export function getCompanies(): Company[] {
   if (typeof window === 'undefined') return []
   try {
     const data = localStorage.getItem(STORAGE_KEY)
-    return data ? JSON.parse(data) : []
+    const parsed: Company[] = data ? JSON.parse(data) : []
+    // 旧データにsummariesがない場合は補完
+    return parsed.map(c => ({ ...c, summaries: c.summaries ?? {} }))
   } catch {
     return []
   }
@@ -42,6 +44,7 @@ export function createCompany(name: string, concept: string, emoji: string): Com
     agentCount: Math.floor(Math.random() * 5) + 1,
     status: 'planning',
     conversations,
+    summaries: {},
     createdAt: Date.now(),
   }
   saveCompany(company)

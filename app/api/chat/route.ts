@@ -34,13 +34,19 @@ export async function POST(request: Request) {
     role: ExecutiveRole
     companyContext: { name: string; concept: string }
     allConversations?: Record<ExecutiveRole, Message[]>
+    summary?: string
   }
 
-  const { messages, role, companyContext, allConversations } = body
+  const { messages, role, companyContext, allConversations, summary } = body
   const teamContext = allConversations ? buildTeamContext(allConversations, role) : ''
-  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept) + teamContext
+  const summaryContext = summary
+    ? `\n\n---\n# これまでの会話サマリー\n${summary}\n---\n`
+    : ''
+  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept) + summaryContext + teamContext
 
-  const anthropicMessages = messages
+  // summaryがある場合は直近8件のみ送る
+  const recentMessages = summary ? messages.slice(-8) : messages
+  const anthropicMessages = recentMessages
     .filter(m => m.content.trim())
     .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
 
@@ -48,7 +54,7 @@ export async function POST(request: Request) {
     model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemPrompt,
-    messages: anthropicMessages,
+    messages: anthropicMessages.length > 0 ? anthropicMessages : [{ role: 'user', content: '...' }],
   })
 
   const readable = new ReadableStream({
