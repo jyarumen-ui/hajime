@@ -9,7 +9,7 @@ export function getCompanies(): Company[] {
     const data = localStorage.getItem(STORAGE_KEY)
     const parsed: Company[] = data ? JSON.parse(data) : []
     // 旧データにsummariesがない場合は補完
-    return parsed.map(c => ({ ...c, summaries: c.summaries ?? {} }))
+    return parsed.map(c => ({ ...c, summaries: c.summaries ?? {}, userProfile: c.userProfile ?? {} }))
   } catch {
     return []
   }
@@ -45,6 +45,7 @@ export function createCompany(name: string, concept: string, emoji: string): Com
     status: 'planning',
     conversations,
     summaries: {},
+    userProfile: {},
     createdAt: Date.now(),
   }
   saveCompany(company)

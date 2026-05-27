@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { ExecutiveRole, Message } from '@/types'
-import { getSystemPrompt } from '@/lib/executives'
+import { getSystemPrompt, buildProfileContext } from '@/lib/executives'
+import type { UserProfile } from '@/types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -35,14 +36,16 @@ export async function POST(request: Request) {
     companyContext: { name: string; concept: string }
     allConversations?: Record<ExecutiveRole, Message[]>
     summary?: string
+    userProfile?: UserProfile
   }
 
-  const { messages, role, companyContext, allConversations, summary } = body
+  const { messages, role, companyContext, allConversations, summary, userProfile } = body
   const teamContext = allConversations ? buildTeamContext(allConversations, role) : ''
   const summaryContext = summary
     ? `\n\n---\n# これまでの会話サマリー\n${summary}\n---\n`
     : ''
-  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept) + summaryContext + teamContext
+  const profileContext = userProfile ? buildProfileContext(userProfile) : ''
+  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept) + profileContext + summaryContext + teamContext
 
   // summaryがある場合は直近8件のみ送る
   const recentMessages = summary ? messages.slice(-8) : messages

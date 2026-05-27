@@ -65,6 +65,7 @@ export default function CompanyPage() {
           companyContext: { name: company.name, concept: company.concept },
           allConversations: updated.conversations,
           summary: updated.summaries?.[activeRole],
+          userProfile: updated.userProfile ?? {},
         }),
       })
 
@@ -153,6 +154,26 @@ export default function CompanyPage() {
           saveCompany(finalCompany)
           setCompany({ ...finalCompany })
         }
+      }
+
+      // プロフィール抽出（バックグラウンド）
+      const lastUserMsg = contextMessages.filter(m => m.role === 'user').at(-1)
+      if (lastUserMsg) {
+        fetch('/api/extract-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userMessage: lastUserMsg.content,
+            assistantMessage: cleanContent,
+            currentProfile: finalCompany.userProfile ?? {},
+          }),
+        }).then(r => r.json()).then(async ({ profile }) => {
+          if (profile) {
+            const { saveCompany: sc, getCompany: gc } = await import('@/lib/store')
+            const latest = gc(company.id)
+            if (latest) { latest.userProfile = profile; sc(latest) }
+          }
+        }).catch(() => {})
       }
 
       // バックグラウンドで同期

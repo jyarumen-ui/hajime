@@ -48,6 +48,13 @@ CHOICES:["選択肢1（15字以内・現状を表す言葉）","選択肢2","選
 例：「売上はまだ0円」「月1〜10万円」「月10〜100万円」「月100万円以上」「わからない」
 `
 
+export function buildProfileContext(profile: Record<string, string | undefined>): string {
+  const entries = Object.entries(profile).filter(([, v]) => v)
+  if (entries.length === 0) return ''
+  const lines = entries.map(([k, v]) => `- ${k}: ${v}`).join('\n')
+  return `\n\n【確認済みのユーザー情報 — 以下は絶対に再度聞かないこと】\n${lines}\n\n上記以外の未把握情報を優先して聞き出してください。\n`
+}
+
 export function getSystemPrompt(role: ExecutiveRole, companyName: string, concept: string): string {
   const context = `あなたは「${companyName}」（${concept}）の${role}です。日本語で話してください。`
 
