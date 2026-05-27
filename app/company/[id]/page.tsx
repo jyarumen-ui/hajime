@@ -6,10 +6,8 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Company, ExecutiveRole, Message } from '@/types'
 import { getCompany, addMessage } from '@/lib/store'
 import { EXECUTIVE_INFO } from '@/lib/executives'
-import { isLimitReached, incrementMessage, getRemainingMessages } from '@/lib/usage'
 import ExecutiveBar from '@/components/ExecutiveBar'
 import ChatBubble from '@/components/ChatBubble'
-import UpgradeModal from '@/components/UpgradeModal'
 
 export default function CompanyPage() {
   const { id } = useParams<{ id: string }>()
@@ -19,12 +17,6 @@ export default function CompanyPage() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [streamingId, setStreamingId] = useState<string | null>(null)
-  const [showUpgrade, setShowUpgrade] = useState(false)
-  const [remaining, setRemaining] = useState(0)
-
-  useEffect(() => {
-    setRemaining(getRemainingMessages())
-  }, [])
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -47,9 +39,6 @@ export default function CompanyPage() {
   async function send(override?: string) {
     const content = (override ?? input).trim()
     if (!content || isLoading || !company) return
-    if (isLimitReached()) { setShowUpgrade(true); return }
-    incrementMessage()
-    setRemaining(getRemainingMessages())
 
     const userMsg: Message = {
       id: uuidv4(),
@@ -202,7 +191,6 @@ export default function CompanyPage() {
   return (
     <div className="min-h-screen flex flex-col max-w-sm mx-auto"
       style={{ backgroundColor: '#F5F0EB', fontFamily: 'system-ui, sans-serif' }}>
-      {showUpgrade && <UpgradeModal onClose={() => setShowUpgrade(false)} />}
       {/* Header */}
       <div className="px-4 pt-5 pb-3">
         <div className="flex items-center justify-between mb-1">
@@ -266,16 +254,6 @@ export default function CompanyPage() {
 
       {/* Input */}
       <div className="px-4 pb-6 pt-2">
-        {remaining !== Infinity && remaining <= 5 && (
-          <div className="mb-2 flex items-center justify-between px-1">
-            <span className="text-[10px] text-gray-400">残り {remaining} 回</span>
-            <button onClick={() => setShowUpgrade(true)}
-              className="text-[10px] px-2 py-0.5 rounded-full text-white"
-              style={{ backgroundColor: '#C0392B' }}>
-              Pro にアップグレード
-            </button>
-          </div>
-        )}
         <div className="flex gap-2 items-end bg-white rounded-2xl px-3 py-2 shadow-sm">
           <textarea
             ref={inputRef}
