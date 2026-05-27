@@ -1,4 +1,5 @@
 import type { ExecutiveRole } from '@/types'
+import type { FounderProfile } from '@/lib/profile'
 
 export const EXECUTIVE_INFO: Record<ExecutiveRole, { name: string; title: string; color: string; emoji: string }> = {
   CEO: { name: '代表取締役CEO', title: '全体戦略・最終意思決定', color: '#C0392B', emoji: '👔' },
@@ -8,99 +9,116 @@ export const EXECUTIVE_INFO: Record<ExecutiveRole, { name: string; title: string
   CFO: { name: '最高財務責任者CFO', title: '財務計画・資金調達', color: '#1A6B3A', emoji: '💰' },
 }
 
-const INTERVIEW_BASE = `
-【あなたの最重要ミッション】
-あなたは経験豊富な経営コンサルタントとしてインタビューを行います。
-返答の9割は「質問」です。アドバイスは情報が十分に集まった後にのみ行います。
+function buildKnownInfo(
+  founder: FounderProfile | null | undefined,
+  userProfile: Record<string, string | undefined> | null | undefined,
+  conversationSummary: string | null | undefined,
+): string {
+  const lines: string[] = []
 
-【インタビューの原則】
-- 一度に聞くのは必ず1つの質問のみ
-- 相手の答えに対して「なぜそうなっているか」「具体的にどういう状態か」を深掘りする
-- 「〇〇したい」という希望より「今どういう状態か」という現実を先に把握する
-- アドバイスは5〜7往復情報収集した後に行う
-- 断定・提案・解決策の提示は「情報が揃った」と判断した時だけ行う
+  if (founder?.name) lines.push(`- 名前: ${founder.name}`)
+  if (founder?.position) lines.push(`- 立場: ${founder.position}`)
+  if (founder?.stage) lines.push(`- 事業ステージ: ${founder.stage}`)
+  if (founder?.weeklyHours) lines.push(`- 使える時間: ${founder.weeklyHours}`)
+  if (founder?.budget) lines.push(`- 使える資金: ${founder.budget}`)
+  if (founder?.skills) lines.push(`- 得意なこと: ${founder.skills}`)
+  if (founder?.industry) lines.push(`- 関心ジャンル: ${founder.industry}`)
+  if (founder?.challenge) lines.push(`- 現在の課題: ${founder.challenge}`)
+  if (founder?.goal) lines.push(`- 目標: ${founder.goal}`)
 
-【聞き出すべき情報（優先順位順）】
-1. 現在の売上・収益状況（0円〜規模感）
-2. 使える時間・お金・人（リソース）
-3. これまで試したこと・うまくいかなかった理由
-4. 誰に何を売っているか・顧客との接点
-5. 今一番困っていること・詰まっていること
-6. 3ヶ月後に何が変わっていれば成功か
-
-【返答フォーマット】
-- まず相手の答えへの短い反応（1〜2行）
-- 次の質問（1つだけ）
-- 選択肢は「相手の現状を明らかにする」ために設計する（やりたいことではなく、今の状態を聞く）
-
-【絶対禁止】
-- 情報不足なまま「〇〇すべきです」と断言する
-- 複数の提案を並べる（情報収集フェーズ中）
-- 相手が「どうすればいいですか」と聞いても、まだ情報が足りなければ「もう少し教えてください」と返す
-`
-
-const CHOICE_FORMAT = `
-【選択肢フォーマット・必須】
-返答の最後の1行に必ず以下を出力する（JSONを厳守）：
-CHOICES:["選択肢1（15字以内・現状を表す言葉）","選択肢2","選択肢3","選択肢4","選択肢5"]
-
-選択肢は「やりたいこと」ではなく「今の状態」を選ばせる設計にすること。
-例：「売上はまだ0円」「月1〜10万円」「月10〜100万円」「月100万円以上」「わからない」
-`
-
-export function buildProfileContext(profile: Record<string, string | undefined>): string {
-  const entries = Object.entries(profile).filter(([, v]) => v)
-  if (entries.length === 0) return ''
-  const lines = entries.map(([k, v]) => `- ${k}: ${v}`).join('\n')
-  return `\n\n【確認済みのユーザー情報 — 以下は絶対に再度聞かないこと】\n${lines}\n\n上記以外の未把握情報を優先して聞き出してください。\n`
-}
-
-export function getSystemPrompt(role: ExecutiveRole, companyName: string, concept: string): string {
-  const context = `あなたは「${companyName}」（${concept}）の${role}です。日本語で話してください。`
-
-  const roleCore: Record<ExecutiveRole, string> = {
-    CEO: `${context}${INTERVIEW_BASE}
-【CEOとしての重点ヒアリング項目】
-- 代表者が「本当に解決したい問題」は何か
-- なぜ今この事業をやっているのか（動機・背景）
-- 意思決定で何が一番怖いか・躊躇していることは何か
-- 3年後どういう状態でありたいか
-${CHOICE_FORMAT}`,
-
-    COO: `${context}${INTERVIEW_BASE}
-【COOとしての重点ヒアリング項目】
-- 現在の業務フロー・1日の時間の使い方
-- 人手が足りていない工程はどこか
-- 繰り返し発生しているミス・ボトルネック
-- 外注・採用・ツール導入で何を試したか
-${CHOICE_FORMAT}`,
-
-    CTO: `${context}${INTERVIEW_BASE}
-【CTOとしての重点ヒアリング項目】
-- 今使っているツール・システム・技術
-- 技術的なスキルレベル（自分でコードを書けるか）
-- 自動化・効率化したい作業は何か
-- 技術的な課題で一番困っていること
-${CHOICE_FORMAT}`,
-
-    CMO: `${context}${INTERVIEW_BASE}
-【CMOとしての重点ヒアリング項目】
-- 今の顧客はどこから来ているか（集客経路）
-- 過去に試したマーケティング手法と結果
-- 顧客から一番多くもらうフィードバック・不満
-- 競合と比べて自分が勝てている点・負けている点
-${CHOICE_FORMAT}`,
-
-    CFO: `${context}${INTERVIEW_BASE}
-【CFOとしての重点ヒアリング項目】
-- 現在の月次収支（収入・主要コスト）
-- 今の収益モデル（どうやって誰からお金をもらっているか）
-- 価格設定の根拠（なぜその値段にしたか）
-- 資金繰りで今一番不安なこと
-${CHOICE_FORMAT}`,
+  if (userProfile) {
+    for (const [k, v] of Object.entries(userProfile)) {
+      if (v) lines.push(`- ${k}: ${v}`)
+    }
   }
 
-  return roleCore[role]
+  if (lines.length === 0 && !conversationSummary) return ''
+
+  const parts: string[] = []
+  if (lines.length > 0) {
+    parts.push(`【すでに把握している情報 — 絶対に再度聞かないこと】\n${lines.join('\n')}`)
+  }
+  if (conversationSummary) {
+    parts.push(`【これまでの会話サマリー】\n${conversationSummary}`)
+  }
+
+  return `\n\n${parts.join('\n\n')}\n\n上記は把握済みです。これらについて再度質問しないこと。把握できていない情報を1つずつ聞き出してください。\n`
+}
+
+const INTERVIEW_CORE = `
+【あなたの最重要ミッション】
+返答の9割は質問です。「把握済み情報」にないことを1つずつ掘り下げてください。
+アドバイス・提案・解決策は、十分に情報が集まった後にのみ行います。
+
+【インタビューの原則】
+- 一度に1つの質問のみ
+- 「やりたいこと」より「今の現実・状態」を先に把握する
+- 相手の答えに「なぜ？」「具体的には？」で深掘りする
+- 5〜7往復の情報収集後に提案フェーズへ移行
+
+【選択肢フォーマット（必須）】
+返答の最後の1行に必ずこのJSONを出力：
+CHOICES:["選択肢1（15字以内）","選択肢2","選択肢3","選択肢4","選択肢5"]
+選択肢は「今の状態を選ぶ」設計にすること。`
+
+const ROLE_FOCUS: Record<ExecutiveRole, string> = {
+  CEO: `【CEOとして優先的に把握する情報】
+- この事業をやる動機・背景（なぜこれか）
+- 意思決定で何が一番怖いか
+- 3年後どういう状態でいたいか`,
+  COO: `【COOとして優先的に把握する情報】
+- 今の業務フロー・1日の時間の使い方
+- 繰り返し発生しているミス・詰まり
+- 外注・採用・ツールで試したこと`,
+  CTO: `【CTOとして優先的に把握する情報】
+- 今使っているツール・システム
+- 技術スキルレベル（自分でコードを書けるか）
+- 自動化・効率化したい作業`,
+  CMO: `【CMOとして優先的に把握する情報】
+- 今の集客経路（どこから客が来るか）
+- 過去に試したマーケ施策と結果
+- 顧客からの不満・フィードバック`,
+  CFO: `【CFOとして優先的に把握する情報】
+- 現在の月次収支（収入・主要コスト）
+- 今の収益モデル（どうお金をもらっているか）
+- 価格設定の根拠`,
+}
+
+export function getSystemPrompt(
+  role: ExecutiveRole,
+  companyName: string,
+  concept: string,
+  founderProfile?: FounderProfile | null,
+  userProfile?: Record<string, string | undefined> | null,
+  conversationSummary?: string | null,
+): string {
+  const knownInfo = buildKnownInfo(founderProfile, userProfile, conversationSummary)
+  return `あなたは「${companyName}」（${concept}）のAI ${role}です。日本語で話してください。${knownInfo}
+${INTERVIEW_CORE}
+
+${ROLE_FOCUS[role]}`
+}
+
+export function buildTeamContext(allConversations: Record<ExecutiveRole, Message[]>, currentRole: ExecutiveRole): string {
+  const roles: ExecutiveRole[] = ['CEO', 'COO', 'CTO', 'CMO', 'CFO']
+  const lines: string[] = []
+  for (const role of roles) {
+    if (role === currentRole) continue
+    const msgs = allConversations[role] ?? []
+    const recent = msgs.filter(m => m.content.trim()).slice(-3)
+    if (recent.length === 0) continue
+    lines.push(`【${role}の議論】`)
+    for (const m of recent) {
+      const clean = m.content.replace(/\nCHOICES:\[[\s\S]*?\]\s*$/, '').slice(0, 150)
+      lines.push(`${m.role === 'user' ? '代表' : role}: ${clean}`)
+    }
+  }
+  return lines.length > 0 ? `\n\n【他役員との共有情報】\n${lines.join('\n')}` : ''
+}
+
+// メッセージからCHOICESを除去してAPIに送る用に整形
+export function cleanMessageForApi(content: string): string {
+  return content.replace(/\nCHOICES:\[[\s\S]*?\]\s*$/m, '').trimEnd()
 }
 
 export function parseChoices(content: string): { text: string; choices: string[] } {
@@ -113,3 +131,8 @@ export function parseChoices(content: string): { text: string; choices: string[]
     return { text: content, choices: [] }
   }
 }
+
+// 後方互換
+export function buildProfileContext(_profile: Record<string, string | undefined>): string { return '' }
+
+import type { Message } from '@/types'

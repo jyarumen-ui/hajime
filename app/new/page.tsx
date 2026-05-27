@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import type { Message } from '@/types'
 import { createCompany } from '@/lib/store'
+import { getFounderProfile } from '@/lib/profile'
 import ChatBubble from '@/components/ChatBubble'
 
 const EMOJIS = ['🚀', '💡', '🌱', '⚡', '🔥', '🎯', '🌊', '🦁', '🌟', '🎪']
@@ -76,7 +77,7 @@ export default function NewPage() {
           messages: contextMessages,
           role: 'CEO',
           companyContext: { name: '新規事業', concept: 'ヒアリング中' },
-          systemSuffix,
+          founderProfile: getFounderProfile(),
         }),
       })
 

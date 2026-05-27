@@ -1,31 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ExecutiveRole, Message } from '@/types'
-import { getSystemPrompt, buildProfileContext } from '@/lib/executives'
-import type { UserProfile } from '@/types'
+import type { ExecutiveRole, Message, UserProfile } from '@/types'
 import type { FounderProfile } from '@/lib/profile'
-import { profileToContext } from '@/lib/profile'
+import { getSystemPrompt, buildTeamContext, cleanMessageForApi } from '@/lib/executives'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-function buildTeamContext(allConversations: Record<ExecutiveRole, Message[]>, currentRole: ExecutiveRole): string {
-  const roles: ExecutiveRole[] = ['CEO', 'COO', 'CTO', 'CMO', 'CFO']
-  const lines: string[] = []
-
-  for (const role of roles) {
-    if (role === currentRole) continue
-    const msgs = allConversations[role] ?? []
-    const recent = msgs.filter(m => m.content.trim()).slice(-4)
-    if (recent.length === 0) continue
-    lines.push(`【${role}の直近の議論】`)
-    for (const m of recent) {
-      lines.push(`${m.role === 'user' ? '代表' : role}: ${m.content.slice(0, 200)}`)
-    }
-  }
-
-  return lines.length > 0
-    ? `\n\n---\n# チーム共有コンテキスト（他役員の議論）\n${lines.join('\n')}\n---\n`
-    : ''
-}
 
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -39,34 +17,38 @@ export async function POST(request: Request) {
     allConversations?: Record<ExecutiveRole, Message[]>
     summary?: string
     userProfile?: UserProfile
-    founderProfile?: FounderProfile
+    founderProfile?: FounderProfile | null
   }
 
   const { messages, role, companyContext, allConversations, summary, userProfile, founderProfile } = body
-  const teamContext = allConversations ? buildTeamContext(allConversations, role) : ''
-  const summaryContext = summary
-    ? `\n\n---\n# これまでの会話サマリー\n${summary}\n---\n`
-    : ''
-  const profileContext = userProfile ? buildProfileContext(userProfile) : ''
-  const founderContext = founderProfile
-    ? `\n\n${profileToContext(founderProfile)}\n`
-    : ''
-  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept) + founderContext + profileContext + summaryContext + teamContext
 
-  // summaryがある場合は直近8件のみ送る
+  const systemPrompt = getSystemPrompt(
+    role,
+    companyContext.name,
+    companyContext.concept,
+    founderProfile,
+    userProfile,
+    summary,
+  ) + (allConversations ? buildTeamContext(allConversations, role) : '')
+
+  // summaryがある場合は直近8件、なければ全件。CHOICES行を除去してから送る
   const recentMessages = summary ? messages.slice(-8) : messages
   const anthropicMessages = recentMessages
     .filter(m => m.content.trim())
-    .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
+    .map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: cleanMessageForApi(m.content),
+    }))
+    .filter(m => m.content.trim())
 
+  let stopReason = 'end_turn'
   const stream = client.messages.stream({
     model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: systemPrompt,
-    messages: anthropicMessages.length > 0 ? anthropicMessages : [{ role: 'user', content: '...' }],
+    messages: anthropicMessages.length > 0 ? anthropicMessages : [{ role: 'user', content: 'よろしくお願いします' }],
   })
 
-  let stopReason = 'end_turn'
   const readable = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
@@ -79,7 +61,6 @@ export async function POST(request: Request) {
             stopReason = chunk.delta.stop_reason
           }
         }
-        // stop_reasonをSSEのように末尾に付加して通知
         if (stopReason === 'max_tokens') {
           controller.enqueue(encoder.encode('\n\n__TRUNCATED__'))
         }
@@ -92,9 +73,6 @@ export async function POST(request: Request) {
   })
 
   return new Response(readable, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-    },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Transfer-Encoding': 'chunked' },
   })
 }
