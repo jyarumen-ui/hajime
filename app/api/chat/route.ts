@@ -4,6 +4,26 @@ import { getSystemPrompt } from '@/lib/executives'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+function buildTeamContext(allConversations: Record<ExecutiveRole, Message[]>, currentRole: ExecutiveRole): string {
+  const roles: ExecutiveRole[] = ['CEO', 'COO', 'CTO', 'CMO', 'CFO']
+  const lines: string[] = []
+
+  for (const role of roles) {
+    if (role === currentRole) continue
+    const msgs = allConversations[role] ?? []
+    const recent = msgs.filter(m => m.content.trim()).slice(-4)
+    if (recent.length === 0) continue
+    lines.push(`【${role}の直近の議論】`)
+    for (const m of recent) {
+      lines.push(`${m.role === 'user' ? '代表' : role}: ${m.content.slice(0, 200)}`)
+    }
+  }
+
+  return lines.length > 0
+    ? `\n\n---\n# チーム共有コンテキスト（他役員の議論）\n${lines.join('\n')}\n---\n`
+    : ''
+}
+
 export async function POST(request: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return Response.json({ error: 'APIキーを設定してください' }, { status: 500 })
@@ -13,10 +33,12 @@ export async function POST(request: Request) {
     messages: Message[]
     role: ExecutiveRole
     companyContext: { name: string; concept: string }
+    allConversations?: Record<ExecutiveRole, Message[]>
   }
 
-  const { messages, role, companyContext } = body
-  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept)
+  const { messages, role, companyContext, allConversations } = body
+  const teamContext = allConversations ? buildTeamContext(allConversations, role) : ''
+  const systemPrompt = getSystemPrompt(role, companyContext.name, companyContext.concept) + teamContext
 
   const anthropicMessages = messages
     .filter(m => m.content.trim())

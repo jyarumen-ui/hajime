@@ -60,6 +60,7 @@ export default function CompanyPage() {
           messages: contextMessages,
           role: activeRole,
           companyContext: { name: company.name, concept: company.concept },
+          allConversations: updated.conversations,
         }),
       })
 
@@ -105,8 +106,11 @@ export default function CompanyPage() {
       finalCompany.conversations[activeRole] = finalCompany.conversations[activeRole].map(m =>
         m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
       )
-      const { saveCompany } = await import('@/lib/store')
+      const { saveCompany, getCompanies } = await import('@/lib/store')
       saveCompany(finalCompany)
+      // バックグラウンドで同期
+      const { pushSync } = await import('@/lib/sync')
+      pushSync(getCompanies()).catch(() => {})
     } catch (err) {
       const errMsg: Message = {
         id: uuidv4(),

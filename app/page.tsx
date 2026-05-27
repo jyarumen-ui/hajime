@@ -3,23 +3,80 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { Company } from '@/types'
-import { getCompanies } from '@/lib/store'
+import { getCompanies, saveCompany } from '@/lib/store'
+import { initSync, pushSync, pullSync, getSyncId, setSyncId } from '@/lib/sync'
 import CompanyCard from '@/components/CompanyCard'
 
 export default function DashboardPage() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [hour, setHour] = useState(0)
+  const [syncing, setSyncing] = useState(false)
+  const [syncId, setSyncIdState] = useState<string | null>(null)
+  const [importInput, setImportInput] = useState('')
+  const [showImport, setShowImport] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'ok' | 'err'>('idle')
 
   useEffect(() => {
-    setCompanies(getCompanies())
     setHour(new Date().getHours())
+    const stored = getCompanies()
+    setCompanies(stored)
+    setSyncIdState(getSyncId())
+
+    // 既存のsyncIdがあれば自動プル
+    const id = getSyncId()
+    if (id) {
+      pullSync(id).then(remote => {
+        if (remote && remote.length > 0) {
+          remote.forEach(c => saveCompany(c))
+          setCompanies(getCompanies())
+        }
+      })
+    }
   }, [])
 
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは'
-
   const totalArr = companies.reduce((s, c) => s + c.arr, 0)
   const totalDailySales = companies.reduce((s, c) => s + c.dailySales, 0)
   const totalAgents = companies.reduce((s, c) => s + c.agentCount, 0)
+
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const id = await initSync(companies)
+      setSyncIdState(id)
+      await pushSync(getCompanies())
+      setSyncStatus('ok')
+    } catch {
+      setSyncStatus('err')
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncStatus('idle'), 3000)
+    }
+  }
+
+  async function handleImport() {
+    if (!importInput.trim()) return
+    setSyncing(true)
+    try {
+      const remote = await pullSync(importInput.trim())
+      if (remote) {
+        remote.forEach(c => saveCompany(c))
+        setCompanies(getCompanies())
+        setSyncId(importInput.trim())
+        setSyncIdState(importInput.trim())
+        setSyncStatus('ok')
+        setShowImport(false)
+        setImportInput('')
+      } else {
+        setSyncStatus('err')
+      }
+    } catch {
+      setSyncStatus('err')
+    } finally {
+      setSyncing(false)
+      setTimeout(() => setSyncStatus('idle'), 3000)
+    }
+  }
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-10 max-w-sm mx-auto"
@@ -62,6 +119,57 @@ export default function DashboardPage() {
             {totalAgents}名
           </p>
         </div>
+      </div>
+
+      {/* Sync Panel */}
+      <div className="bg-white rounded-2xl p-3 shadow-sm mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">☁️</span>
+            <span className="text-xs font-medium text-gray-700">デバイス同期</span>
+            {syncId && (
+              <span className="w-2 h-2 rounded-full bg-green-400" />
+            )}
+          </div>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setShowImport(v => !v)}
+              className="text-[10px] px-2 py-1 rounded-lg border text-gray-600 hover:bg-gray-50"
+              style={{ borderColor: '#ddd' }}>
+              インポート
+            </button>
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="text-[10px] px-2 py-1 rounded-lg text-white disabled:opacity-50"
+              style={{ backgroundColor: '#C0392B' }}>
+              {syncing ? '同期中…' : syncStatus === 'ok' ? '✓ 完了' : syncStatus === 'err' ? '✗ エラー' : '同期'}
+            </button>
+          </div>
+        </div>
+        {syncId && (
+          <div className="text-[9px] text-gray-400 break-all">
+            同期ID: {syncId}
+          </div>
+        )}
+        {showImport && (
+          <div className="mt-2 flex gap-1.5">
+            <input
+              value={importInput}
+              onChange={e => setImportInput(e.target.value)}
+              placeholder="同期IDを入力..."
+              className="flex-1 text-xs border rounded-lg px-2 py-1 outline-none"
+              style={{ borderColor: '#ddd' }}
+            />
+            <button
+              onClick={handleImport}
+              disabled={syncing}
+              className="text-xs px-3 py-1 rounded-lg text-white"
+              style={{ backgroundColor: '#8B4513' }}>
+              取込
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Company Grid */}
