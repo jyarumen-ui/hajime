@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Company, ExecutiveRole, Message } from '@/types'
 import { getCompany, addMessage } from '@/lib/store'
 import { EXECUTIVE_INFO } from '@/lib/executives'
+import { getFounderProfile } from '@/lib/profile'
 import ExecutiveBar from '@/components/ExecutiveBar'
 import ChatBubble from '@/components/ChatBubble'
 
@@ -66,6 +67,7 @@ export default function CompanyPage() {
           allConversations: updated.conversations,
           summary: updated.summaries?.[activeRole],
           userProfile: updated.userProfile ?? {},
+          founderProfile: getFounderProfile(),
         }),
       })
 

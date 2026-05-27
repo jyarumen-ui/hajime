@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Company } from '@/types'
 import { getCompanies, saveCompany } from '@/lib/store'
 import { initSync, pushSync, pullSync, getSyncId, setSyncId } from '@/lib/sync'
+import { getFounderProfile, isProfileComplete } from '@/lib/profile'
+import type { FounderProfile } from '@/lib/profile'
 import CompanyCard from '@/components/CompanyCard'
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [companies, setCompanies] = useState<Company[]>([])
   const [hour, setHour] = useState(0)
   const [syncing, setSyncing] = useState(false)
@@ -15,14 +19,18 @@ export default function DashboardPage() {
   const [importInput, setImportInput] = useState('')
   const [showImport, setShowImport] = useState(false)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'ok' | 'err'>('idle')
+  const [profile, setProfile] = useState<FounderProfile | null>(null)
 
   useEffect(() => {
+    if (!isProfileComplete()) {
+      router.push('/profile')
+      return
+    }
     setHour(new Date().getHours())
-    const stored = getCompanies()
-    setCompanies(stored)
+    setCompanies(getCompanies())
     setSyncIdState(getSyncId())
+    setProfile(getFounderProfile())
 
-    // 既存のsyncIdがあれば自動プル
     const id = getSyncId()
     if (id) {
       pullSync(id).then(remote => {
@@ -32,7 +40,7 @@ export default function DashboardPage() {
         }
       })
     }
-  }, [])
+  }, [router])
 
   const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは'
   const totalArr = companies.reduce((s, c) => s + c.arr, 0)
@@ -81,8 +89,9 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen px-4 pt-6 pb-10 max-w-sm mx-auto"
       style={{ backgroundColor: '#F5F0EB', fontFamily: 'system-ui, sans-serif' }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-2xl font-bold" style={{ color: '#C0392B' }}>始</span>
@@ -94,13 +103,49 @@ export default function DashboardPage() {
           <p className="text-[10px] tracking-widest text-gray-400 uppercase">01 / SOVEREIGN DASHBOARD</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500">{greeting}</p>
+          <p className="text-xs text-gray-500">{greeting}{profile?.name ? `、${profile.name}` : ''}</p>
           <p className="text-xs font-bold text-gray-800">創業主権者</p>
         </div>
       </div>
 
+      {/* Founder Profile Card */}
+      {profile && (
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">👤</span>
+              <span className="text-xs font-bold text-gray-700">創業者プロフィール</span>
+            </div>
+            <Link href="/profile">
+              <span className="text-[10px] text-gray-400 hover:text-gray-600 underline">編集</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {[
+              { label: '立場', value: profile.position },
+              { label: 'ステージ', value: profile.stage },
+              { label: '時間', value: profile.weeklyHours },
+              { label: '資金', value: profile.budget },
+              { label: '得意', value: profile.skills },
+              { label: '目標', value: profile.goal },
+            ].map(({ label, value }) => value ? (
+              <div key={label}>
+                <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
+                <p className="text-[11px] text-gray-700 font-medium leading-tight truncate">{value}</p>
+              </div>
+            ) : null)}
+          </div>
+          {profile.challenge && (
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <p className="text-[9px] text-gray-400 mb-0.5">今の課題</p>
+              <p className="text-[11px] text-gray-700">{profile.challenge}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
           <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-1">累計ARR</p>
           <p className="text-xs font-bold" style={{ color: '#C0392B' }}>
@@ -127,43 +172,29 @@ export default function DashboardPage() {
           <div className="flex items-center gap-1.5">
             <span className="text-sm">☁️</span>
             <span className="text-xs font-medium text-gray-700">デバイス同期</span>
-            {syncId && (
-              <span className="w-2 h-2 rounded-full bg-green-400" />
-            )}
+            {syncId && <span className="w-2 h-2 rounded-full bg-green-400" />}
           </div>
           <div className="flex gap-1.5">
-            <button
-              onClick={() => setShowImport(v => !v)}
+            <button onClick={() => setShowImport(v => !v)}
               className="text-[10px] px-2 py-1 rounded-lg border text-gray-600 hover:bg-gray-50"
               style={{ borderColor: '#ddd' }}>
               インポート
             </button>
-            <button
-              onClick={handleSync}
-              disabled={syncing}
+            <button onClick={handleSync} disabled={syncing}
               className="text-[10px] px-2 py-1 rounded-lg text-white disabled:opacity-50"
               style={{ backgroundColor: '#C0392B' }}>
               {syncing ? '同期中…' : syncStatus === 'ok' ? '✓ 完了' : syncStatus === 'err' ? '✗ エラー' : '同期'}
             </button>
           </div>
         </div>
-        {syncId && (
-          <div className="text-[9px] text-gray-400 break-all">
-            同期ID: {syncId}
-          </div>
-        )}
+        {syncId && <div className="text-[9px] text-gray-400 break-all">同期ID: {syncId}</div>}
         {showImport && (
           <div className="mt-2 flex gap-1.5">
-            <input
-              value={importInput}
-              onChange={e => setImportInput(e.target.value)}
+            <input value={importInput} onChange={e => setImportInput(e.target.value)}
               placeholder="同期IDを入力..."
               className="flex-1 text-xs border rounded-lg px-2 py-1 outline-none"
-              style={{ borderColor: '#ddd' }}
-            />
-            <button
-              onClick={handleImport}
-              disabled={syncing}
+              style={{ borderColor: '#ddd' }} />
+            <button onClick={handleImport} disabled={syncing}
               className="text-xs px-3 py-1 rounded-lg text-white"
               style={{ backgroundColor: '#8B4513' }}>
               取込
@@ -174,11 +205,9 @@ export default function DashboardPage() {
 
       {/* Company Grid */}
       <div className="mb-4">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-          ポートフォリオ
-        </h2>
+        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">ポートフォリオ</h2>
         {companies.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-6">
             <p className="text-2xl mb-2">🌱</p>
             <p className="text-sm text-gray-500">まだ会社がありません</p>
             <p className="text-xs text-gray-400">最初の事業を始めましょう</p>
