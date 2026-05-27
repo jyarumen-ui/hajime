@@ -7,9 +7,10 @@ interface Props {
   message: Message
   isStreaming?: boolean
   onChoice?: (choice: string) => void
+  onContinue?: () => void
 }
 
-export default function ChatBubble({ message, isStreaming, onChoice }: Props) {
+export default function ChatBubble({ message, isStreaming, onChoice, onContinue }: Props) {
   const isUser = message.role === 'user'
   const exec = message.executiveRole ? EXECUTIVE_INFO[message.executiveRole] : null
 
@@ -26,6 +27,7 @@ export default function ChatBubble({ message, isStreaming, onChoice }: Props) {
 
   const { text, choices } = isStreaming ? { text: message.content, choices: [] } : parseChoices(message.content)
   const showChoices = !isStreaming && choices.length > 0 && onChoice
+  const showContinue = !isStreaming && message.isTruncated && onContinue
 
   return (
     <div className="flex justify-start mb-3">
@@ -47,7 +49,17 @@ export default function ChatBubble({ message, isStreaming, onChoice }: Props) {
           )}
         </div>
 
-        {showChoices && (
+        {showContinue && (
+          <button
+            onClick={onContinue}
+            className="mt-2 w-full text-xs px-3 py-2 rounded-xl border border-dashed flex items-center justify-center gap-1.5 transition-all hover:bg-orange-50"
+            style={{ borderColor: '#C0392B', color: '#C0392B' }}>
+            <span>📖</span>
+            <span>途中で切れました — 続きを読む</span>
+          </button>
+        )}
+
+        {showChoices && !showContinue && (
           <div className="mt-2 flex flex-col gap-1.5">
             {choices.map((choice, i) => (
               <button

@@ -52,22 +52,27 @@ export async function POST(request: Request) {
 
   const stream = client.messages.stream({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 2048,
     system: systemPrompt,
     messages: anthropicMessages.length > 0 ? anthropicMessages : [{ role: 'user', content: '...' }],
   })
 
+  let stopReason = 'end_turn'
   const readable = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       try {
         for await (const chunk of stream) {
-          if (
-            chunk.type === 'content_block_delta' &&
-            chunk.delta.type === 'text_delta'
-          ) {
+          if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
             controller.enqueue(encoder.encode(chunk.delta.text))
           }
+          if (chunk.type === 'message_delta' && chunk.delta.stop_reason) {
+            stopReason = chunk.delta.stop_reason
+          }
+        }
+        // stop_reasonをSSEのように末尾に付加して通知
+        if (stopReason === 'max_tokens') {
+          controller.enqueue(encoder.encode('\n\n__TRUNCATED__'))
         }
       } catch (e) {
         controller.error(e)

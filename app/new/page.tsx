@@ -107,6 +107,14 @@ export default function NewPage() {
           prev.map(m => m.id === assistantMsg.id ? { ...m, content: assistantContent } : m)
         )
       }
+      const isTruncated = assistantContent.endsWith('__TRUNCATED__')
+      const cleanContent = isTruncated
+        ? assistantContent.slice(0, -'__TRUNCATED__'.length).trimEnd()
+        : assistantContent
+      setMessages(prev =>
+        prev.map(m => m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m)
+      )
+      assistantContent = cleanContent
       setStreamingId(null)
 
       setTurn(nextTurn)
@@ -230,6 +238,7 @@ export default function NewPage() {
             message={msg}
             isStreaming={msg.id === streamingId}
             onChoice={i === messages.length - 1 ? (c) => c === '' ? inputRef.current?.focus() : send(c) : undefined}
+            onContinue={i === messages.length - 1 && msg.isTruncated ? () => send('続きをお願いします') : undefined}
           />
         ))}
         {isLoading && !streamingId && (

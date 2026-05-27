@@ -106,11 +106,29 @@ export default function CompanyPage() {
         })
       }
 
+      // 途中切れ検出
+      const isTruncated = assistantContent.endsWith('__TRUNCATED__')
+      const cleanContent = isTruncated
+        ? assistantContent.slice(0, -'__TRUNCATED__'.length).trimEnd()
+        : assistantContent
+
       // 最終メッセージをlocalStorageに反映
       const finalCompany = getCompany(company.id)!
       finalCompany.conversations[activeRole] = finalCompany.conversations[activeRole].map(m =>
-        m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
+        m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m
       )
+      setCompany(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          conversations: {
+            ...prev.conversations,
+            [activeRole]: prev.conversations[activeRole].map(m =>
+              m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m
+            ),
+          },
+        }
+      })
       const { saveCompany, getCompanies } = await import('@/lib/store')
       saveCompany(finalCompany)
 
@@ -164,6 +182,10 @@ export default function CompanyPage() {
     send(choice)
   }
 
+  function handleContinue() {
+    send('続きをお願いします')
+  }
+
   if (!company) return null
 
   return (
@@ -215,6 +237,7 @@ export default function CompanyPage() {
             message={msg}
             isStreaming={msg.id === streamingId}
             onChoice={i === messages.length - 1 ? handleChoice : undefined}
+            onContinue={i === messages.length - 1 && msg.isTruncated ? handleContinue : undefined}
           />
         ))}
         {isLoading && !streamingId && (

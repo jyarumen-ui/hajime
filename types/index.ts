@@ -6,6 +6,7 @@ export interface Message {
   content: string
   executiveRole?: ExecutiveRole
   timestamp: number
+  isTruncated?: boolean
 }
 
 export interface Company {
