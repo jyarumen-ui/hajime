@@ -20,7 +20,11 @@ export default function CompanyPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [showXSearch, setShowXSearch] = useState(false)
+  const [xSearchInput, setXSearchInput] = useState('')
+  const [xSearching, setXSearching] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const xInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -238,6 +242,51 @@ export default function CompanyPage() {
     send('続きをお願いします')
   }
 
+  async function doXSearch() {
+    const username = xSearchInput.replace('@', '').trim()
+    if (!username) return
+    setXSearching(true)
+    setShowXSearch(false)
+    try {
+      const res = await fetch(`/api/x-research?username=${encodeURIComponent(username)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'X調査に失敗しました')
+
+      const { user, topPosts } = data as {
+        user: { username: string; name: string; bio: string; followers: number; following: number; tweetCount: number }
+        topPosts: { text: string; likes: number; retweets: number; impressions: number }[]
+      }
+
+      const avgLikes = topPosts.length > 0
+        ? Math.round(topPosts.reduce((s, p) => s + p.likes, 0) / topPosts.length)
+        : 0
+      const engRate = user.followers > 0
+        ? ((avgLikes / user.followers) * 100).toFixed(2)
+        : '0'
+
+      let msg = `【X調査結果: @${user.username}】\n`
+      msg += `名前: ${user.name} / フォロワー: ${user.followers.toLocaleString()}人 / 投稿数: ${user.tweetCount.toLocaleString()}件\n`
+      if (user.bio) msg += `バイオ: ${user.bio}\n`
+      msg += `平均いいね: ${avgLikes.toLocaleString()} / 推定エンゲージメント率: ${engRate}%\n`
+
+      if (topPosts.length > 0) {
+        msg += `\nTOP投稿（いいね順）:\n`
+        topPosts.forEach((p, i) => {
+          const preview = p.text.slice(0, 100) + (p.text.length > 100 ? '…' : '')
+          msg += `${i + 1}. "${preview}"\n   ❤️${p.likes.toLocaleString()} 🔁${p.retweets.toLocaleString()} 👁${p.impressions.toLocaleString()}\n`
+        })
+      }
+
+      msg += `\nこのXアカウントのSNS戦略・コンテンツパターン・改善点を分析してください。`
+      send(msg)
+    } catch (err) {
+      send(`X調査エラー: ${err instanceof Error ? err.message : '不明なエラー'}`)
+    } finally {
+      setXSearching(false)
+      setXSearchInput('')
+    }
+  }
+
   if (!company) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
@@ -315,6 +364,39 @@ export default function CompanyPage() {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* X Research */}
+      {showXSearch ? (
+        <div className="px-4 pb-2">
+          <div className="flex gap-2 items-center bg-white rounded-2xl px-3 py-2 shadow-sm border" style={{ borderColor: '#1DA1F2' }}>
+            <span className="text-sm flex-shrink-0">🔍</span>
+            <input
+              ref={xInputRef}
+              value={xSearchInput}
+              onChange={e => setXSearchInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') doXSearch(); if (e.key === 'Escape') { setShowXSearch(false); setXSearchInput('') } }}
+              placeholder="@ユーザー名を入力..."
+              className="flex-1 outline-none text-sm text-gray-800 bg-transparent placeholder-gray-400"
+              autoFocus
+            />
+            <button onClick={doXSearch}
+              className="text-[11px] px-2 py-1 rounded-lg text-white flex-shrink-0"
+              style={{ backgroundColor: '#1DA1F2' }}>
+              調査
+            </button>
+            <button onClick={() => { setShowXSearch(false); setXSearchInput('') }}
+              className="text-gray-400 text-sm flex-shrink-0">✕</button>
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 pb-1">
+          <button onClick={() => { setShowXSearch(true); setTimeout(() => xInputRef.current?.focus(), 50) }}
+            disabled={xSearching || isLoading}
+            className="text-[10px] text-gray-400 hover:text-blue-400 flex items-center gap-1 transition-colors disabled:opacity-40">
+            {xSearching ? '🔍 X調査中…' : '🔍 Xアカウントを調査する'}
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="px-4 pb-6 pt-2">
