@@ -289,35 +289,36 @@ export default function CompanyPage() {
 
   if (!company) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
-        <p className="text-sm text-gray-400">{syncing ? '最新データを取得中…' : '読み込み中…'}</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0A0A12' }}>
+        <p className="text-sm animate-pulse" style={{ color: '#F5C518' }}>{syncing ? '最新データを取得中…' : '読み込み中…'}</p>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen flex flex-col max-w-sm mx-auto"
-      style={{ backgroundColor: '#F5F0EB', fontFamily: 'system-ui, sans-serif' }}>
+      style={{ backgroundColor: '#0A0A12', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
       <div className="px-4 pt-5 pb-3">
         <div className="flex items-center justify-between mb-1">
           <button onClick={() => router.push('/')}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+            className="flex items-center gap-1 text-xs transition-colors"
+            style={{ color: '#8080A0' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            ダッシュボード
+            マダオカンパニーズ
           </button>
           <div className="flex items-center gap-2">
-            {syncing && <span className="text-[10px] text-gray-400 animate-pulse">同期中…</span>}
-            <span className="text-lg font-bold" style={{ color: '#C0392B' }}>始</span>
+            {syncing && <span className="text-[10px] animate-pulse" style={{ color: '#F5C518' }}>同期中…</span>}
+            <span className="text-lg">😎</span>
           </div>
         </div>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">{company.emoji}</span>
           <div>
-            <h1 className="font-bold text-gray-800 text-base leading-tight">{company.name}</h1>
-            <p className="text-xs text-gray-500 line-clamp-1">{company.concept}</p>
+            <h1 className="font-bold text-base leading-tight" style={{ color: '#F0F0F0' }}>{company.name}</h1>
+            <p className="text-xs line-clamp-1" style={{ color: '#8080A0' }}>{company.concept}</p>
           </div>
         </div>
         <ExecutiveBar activeRole={activeRole} onSelect={setActiveRole} />
@@ -325,12 +326,12 @@ export default function CompanyPage() {
 
       {/* Active executive indicator */}
       <div className="px-4 pb-2">
-        <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: '#1A1A28' }}>
           <span>{execInfo.emoji}</span>
-          <span className="text-xs font-medium" style={{ color: execInfo.color }}>{execInfo.name}</span>
-          <span className="text-xs text-gray-400">— {execInfo.title}</span>
+          <span className="text-xs font-medium" style={{ color: '#F5C518' }}>{execInfo.name}</span>
+          <span className="text-xs" style={{ color: '#8080A0' }}>— {execInfo.title}</span>
           {messages.length > 0 && (
-            <span className="ml-auto text-[10px] text-gray-400">{messages.length}件</span>
+            <span className="ml-auto text-[10px]" style={{ color: '#8080A0' }}>{messages.length}件</span>
           )}
         </div>
       </div>
@@ -339,8 +340,8 @@ export default function CompanyPage() {
       <div className="flex-1 overflow-y-auto px-4 py-2">
         {messages.length === 0 && (
           <div className="flex justify-center py-8">
-            <p className="text-xs text-gray-400 text-center">
-              {execInfo.emoji} {execInfo.name}に相談してみましょう
+            <p className="text-xs text-center" style={{ color: '#8080A0' }}>
+              {execInfo.emoji} {execInfo.name}に話しかけろ
             </p>
           </div>
         )}
@@ -355,10 +356,10 @@ export default function CompanyPage() {
         ))}
         {isLoading && !streamingId && (
           <div className="flex justify-start mb-3">
-            <div className="bg-white rounded-2xl px-4 py-3 shadow-sm flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="rounded-2xl px-4 py-3 flex items-center gap-1" style={{ backgroundColor: '#1A1A28' }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '300ms' }} />
             </div>
           </div>
         )}
@@ -368,7 +369,7 @@ export default function CompanyPage() {
       {/* X Research */}
       {showXSearch ? (
         <div className="px-4 pb-2">
-          <div className="flex gap-2 items-center bg-white rounded-2xl px-3 py-2 shadow-sm border" style={{ borderColor: '#1DA1F2' }}>
+          <div className="flex gap-2 items-center rounded-2xl px-3 py-2 border" style={{ backgroundColor: '#1A1A28', borderColor: '#1DA1F2' }}>
             <span className="text-sm flex-shrink-0">🔍</span>
             <input
               ref={xInputRef}
@@ -376,23 +377,25 @@ export default function CompanyPage() {
               onChange={e => setXSearchInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') doXSearch(); if (e.key === 'Escape') { setShowXSearch(false); setXSearchInput('') } }}
               placeholder="@ユーザー名を入力..."
-              className="flex-1 outline-none text-sm text-gray-800 bg-transparent placeholder-gray-400"
+              className="flex-1 outline-none text-sm bg-transparent"
+              style={{ color: '#F0F0F0' }}
               autoFocus
             />
             <button onClick={doXSearch}
-              className="text-[11px] px-2 py-1 rounded-lg text-white flex-shrink-0"
-              style={{ backgroundColor: '#1DA1F2' }}>
+              className="text-[11px] px-2 py-1 rounded-lg font-bold flex-shrink-0"
+              style={{ backgroundColor: '#1DA1F2', color: '#fff' }}>
               調査
             </button>
             <button onClick={() => { setShowXSearch(false); setXSearchInput('') }}
-              className="text-gray-400 text-sm flex-shrink-0">✕</button>
+              className="text-sm flex-shrink-0" style={{ color: '#8080A0' }}>✕</button>
           </div>
         </div>
       ) : (
         <div className="px-4 pb-1">
           <button onClick={() => { setShowXSearch(true); setTimeout(() => xInputRef.current?.focus(), 50) }}
             disabled={xSearching || isLoading}
-            className="text-[10px] text-gray-400 hover:text-blue-400 flex items-center gap-1 transition-colors disabled:opacity-40">
+            className="text-[10px] flex items-center gap-1 transition-colors disabled:opacity-40"
+            style={{ color: xSearching ? '#F5C518' : '#8080A0' }}>
             {xSearching ? '🔍 X調査中…' : '🔍 Xアカウントを調査する'}
           </button>
         </div>
@@ -400,7 +403,7 @@ export default function CompanyPage() {
 
       {/* Input */}
       <div className="px-4 pb-6 pt-2">
-        <div className="flex gap-2 items-end bg-white rounded-2xl px-3 py-2 shadow-sm">
+        <div className="flex gap-2 items-end rounded-2xl px-3 py-2" style={{ backgroundColor: '#1A1A28' }}>
           <textarea
             ref={inputRef}
             value={input}
@@ -411,18 +414,18 @@ export default function CompanyPage() {
                 send()
               }
             }}
-            placeholder={`${activeRole}に相談する...`}
+            placeholder={`${activeRole}に話しかけろ...`}
             rows={1}
-            className="flex-1 resize-none outline-none text-sm text-gray-800 bg-transparent placeholder-gray-400"
-            style={{ maxHeight: '120px' }}
+            className="flex-1 resize-none outline-none text-sm bg-transparent placeholder-gray-600"
+            style={{ color: '#F0F0F0', maxHeight: '120px' }}
           />
           <button
             onClick={() => send()}
             disabled={!input.trim() || isLoading}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: execInfo.color }}>
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            style={{ backgroundColor: '#F5C518' }}>
+            <svg className="w-4 h-4" fill="none" stroke="#0A0A12" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </div>

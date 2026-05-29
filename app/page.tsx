@@ -33,7 +33,6 @@ export default function DashboardPage() {
 
     const id = getSyncId()
     if (id) {
-      // 既存の同期IDがあれば自動pull
       pullSync(id).then(remote => {
         if (remote && remote.length > 0) {
           remote.forEach(c => saveCompany(c))
@@ -41,7 +40,6 @@ export default function DashboardPage() {
         }
       })
     } else {
-      // 同期IDがなければ自動生成（初回のみ）
       initSync(getCompanies()).then(newId => {
         setSyncIdState(newId)
         setSyncStatus('ok')
@@ -50,7 +48,7 @@ export default function DashboardPage() {
     }
   }, [router])
 
-  const greeting = hour < 12 ? 'おはようございます' : hour < 18 ? 'こんにちは' : 'こんばんは'
+  const greeting = hour < 12 ? 'おはよう' : hour < 18 ? 'よ' : 'お疲れ'
   const totalArr = companies.reduce((s, c) => s + c.arr, 0)
   const totalDailySales = companies.reduce((s, c) => s + c.dailySales, 0)
   const totalAgents = companies.reduce((s, c) => s + c.agentCount, 0)
@@ -96,36 +94,33 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen px-4 pt-6 pb-10 max-w-sm mx-auto"
-      style={{ backgroundColor: '#F5F0EB', fontFamily: 'system-ui, sans-serif' }}>
+      style={{ backgroundColor: '#0A0A12', fontFamily: 'system-ui, sans-serif' }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-2xl font-bold" style={{ color: '#C0392B' }}>始</span>
-            <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
-              style={{ backgroundColor: '#C0392B' }}>
-              {companies.length} ACTIVE
-            </span>
+            <span className="text-2xl">😎</span>
+            <span className="text-base font-bold" style={{ color: '#F5C518' }}>マダオカンパニーズ</span>
           </div>
-          <p className="text-[10px] tracking-widest text-gray-400 uppercase">01 / SOVEREIGN DASHBOARD</p>
+          <p className="text-[10px] tracking-widest" style={{ color: '#8080A0' }}>下克上、はじめるぞ。/ {companies.length} COMPANIES</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-gray-500">{greeting}{profile?.name ? `、${profile.name}` : ''}</p>
-          <p className="text-xs font-bold text-gray-800">創業主権者</p>
+          <p className="text-xs" style={{ color: '#8080A0' }}>{greeting}{profile?.name ? `、${profile.name}` : ''}</p>
+          <p className="text-xs font-bold" style={{ color: '#F0F0F0' }}>代表取締役</p>
         </div>
       </div>
 
       {/* Founder Profile Card */}
       {profile && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: '#1A1A28' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">👤</span>
-              <span className="text-xs font-bold text-gray-700">創業者プロフィール</span>
+              <span className="text-xs font-bold" style={{ color: '#F5C518' }}>お前のプロフィール</span>
             </div>
             <Link href="/profile">
-              <span className="text-[10px] text-gray-400 hover:text-gray-600 underline">編集</span>
+              <span className="text-[10px] underline" style={{ color: '#8080A0' }}>編集</span>
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
@@ -138,15 +133,15 @@ export default function DashboardPage() {
               { label: '目標', value: profile.goal },
             ].map(({ label, value }) => value ? (
               <div key={label}>
-                <p className="text-[9px] text-gray-400 uppercase tracking-wide">{label}</p>
-                <p className="text-[11px] text-gray-700 font-medium leading-tight truncate">{value}</p>
+                <p className="text-[9px] uppercase tracking-wide" style={{ color: '#8080A0' }}>{label}</p>
+                <p className="text-[11px] font-medium leading-tight truncate" style={{ color: '#F0F0F0' }}>{value}</p>
               </div>
             ) : null)}
           </div>
           {profile.challenge && (
-            <div className="mt-2 pt-2 border-t border-gray-100">
-              <p className="text-[9px] text-gray-400 mb-0.5">今の課題</p>
-              <p className="text-[11px] text-gray-700">{profile.challenge}</p>
+            <div className="mt-2 pt-2" style={{ borderTop: '1px solid #2A2A3A' }}>
+              <p className="text-[9px] mb-0.5" style={{ color: '#8080A0' }}>今の課題</p>
+              <p className="text-[11px]" style={{ color: '#F0F0F0' }}>{profile.challenge}</p>
             </div>
           )}
         </div>
@@ -154,58 +149,58 @@ export default function DashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-1">累計ARR</p>
-          <p className="text-xs font-bold" style={{ color: '#C0392B' }}>
+        <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: '#1A1A28' }}>
+          <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: '#8080A0' }}>累計ARR</p>
+          <p className="text-xs font-bold" style={{ color: '#F5C518' }}>
             ¥{(totalArr / 10000).toFixed(0)}万
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-1">本日売上</p>
-          <p className="text-xs font-bold" style={{ color: '#8B4513' }}>
+        <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: '#1A1A28' }}>
+          <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: '#8080A0' }}>本日売上</p>
+          <p className="text-xs font-bold" style={{ color: '#E63946' }}>
             ¥{totalDailySales.toLocaleString()}
           </p>
         </div>
-        <div className="bg-white rounded-2xl p-3 shadow-sm text-center">
-          <p className="text-[9px] text-gray-500 uppercase tracking-wide mb-1">AGENT数</p>
-          <p className="text-xs font-bold" style={{ color: '#2E4057' }}>
+        <div className="rounded-2xl p-3 text-center" style={{ backgroundColor: '#1A1A28' }}>
+          <p className="text-[9px] uppercase tracking-wide mb-1" style={{ color: '#8080A0' }}>AGENT</p>
+          <p className="text-xs font-bold" style={{ color: '#F0F0F0' }}>
             {totalAgents}名
           </p>
         </div>
       </div>
 
       {/* Sync Panel */}
-      <div className="bg-white rounded-2xl p-3 shadow-sm mb-4">
+      <div className="rounded-2xl p-3 mb-4" style={{ backgroundColor: '#1A1A28' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             <span className="text-sm">☁️</span>
-            <span className="text-xs font-medium text-gray-700">デバイス同期</span>
-            {syncId && <span className="w-2 h-2 rounded-full bg-green-400" />}
+            <span className="text-xs font-medium" style={{ color: '#F0F0F0' }}>デバイス同期</span>
+            {syncId && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#F5C518' }} />}
           </div>
           <div className="flex gap-1.5">
             <button onClick={() => setShowImport(v => !v)}
-              className="text-[10px] px-2 py-1 rounded-lg border text-gray-600 hover:bg-gray-50"
-              style={{ borderColor: '#ddd' }}>
+              className="text-[10px] px-2 py-1 rounded-lg border"
+              style={{ borderColor: '#2A2A3A', color: '#8080A0' }}>
               インポート
             </button>
             <button onClick={handleSync} disabled={syncing}
-              className="text-[10px] px-2 py-1 rounded-lg text-white disabled:opacity-50"
-              style={{ backgroundColor: '#C0392B' }}>
+              className="text-[10px] px-2 py-1 rounded-lg font-bold disabled:opacity-50"
+              style={{ backgroundColor: '#F5C518', color: '#0A0A12' }}>
               {syncing ? '同期中…' : syncStatus === 'ok' ? '✓ 完了' : syncStatus === 'err' ? '✗ エラー' : '同期'}
             </button>
           </div>
         </div>
         {syncId && (
           <div className="flex items-center gap-2 mt-1">
-            <div className="text-[9px] text-gray-400 break-all flex-1">同期ID: {syncId}</div>
+            <div className="text-[9px] break-all flex-1" style={{ color: '#8080A0' }}>同期ID: {syncId}</div>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(syncId)
                 setSyncStatus('ok')
                 setTimeout(() => setSyncStatus('idle'), 2000)
               }}
-              className="text-[9px] px-2 py-0.5 rounded-md border text-gray-500 hover:bg-gray-50 flex-shrink-0"
-              style={{ borderColor: '#ddd' }}>
+              className="text-[9px] px-2 py-0.5 rounded-md border flex-shrink-0"
+              style={{ borderColor: '#2A2A3A', color: '#8080A0' }}>
               コピー
             </button>
           </div>
@@ -215,10 +210,10 @@ export default function DashboardPage() {
             <input value={importInput} onChange={e => setImportInput(e.target.value)}
               placeholder="同期IDを入力..."
               className="flex-1 text-xs border rounded-lg px-2 py-1 outline-none"
-              style={{ borderColor: '#ddd' }} />
+              style={{ borderColor: '#2A2A3A', backgroundColor: '#0A0A12', color: '#F0F0F0' }} />
             <button onClick={handleImport} disabled={syncing}
-              className="text-xs px-3 py-1 rounded-lg text-white"
-              style={{ backgroundColor: '#8B4513' }}>
+              className="text-xs px-3 py-1 rounded-lg font-bold"
+              style={{ backgroundColor: '#E63946', color: '#fff' }}>
               取込
             </button>
           </div>
@@ -227,12 +222,12 @@ export default function DashboardPage() {
 
       {/* Company Grid */}
       <div className="mb-4">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">ポートフォリオ</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#8080A0' }}>ポートフォリオ</h2>
         {companies.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-2xl mb-2">🌱</p>
-            <p className="text-sm text-gray-500">まだ会社がありません</p>
-            <p className="text-xs text-gray-400">最初の事業を始めましょう</p>
+            <p className="text-2xl mb-2">😎</p>
+            <p className="text-sm" style={{ color: '#8080A0' }}>まだ会社がない</p>
+            <p className="text-xs" style={{ color: '#2A2A3A' }}>最初の下克上を始めろ</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -245,11 +240,11 @@ export default function DashboardPage() {
 
       {/* New Session Button */}
       <Link href="/new">
-        <div className="border-2 border-dashed rounded-2xl p-4 text-center transition-colors hover:border-red-300 cursor-pointer"
-          style={{ borderColor: '#C0392B20' }}>
+        <div className="border-2 border-dashed rounded-2xl p-4 text-center transition-colors cursor-pointer"
+          style={{ borderColor: '#F5C51840' }}>
           <span className="text-2xl block mb-1">＋</span>
-          <span className="text-sm font-medium" style={{ color: '#C0392B' }}>新規セッション</span>
-          <p className="text-xs text-gray-400 mt-0.5">新しい事業を始める</p>
+          <span className="text-sm font-bold" style={{ color: '#F5C518' }}>新規セッション</span>
+          <p className="text-xs mt-0.5" style={{ color: '#8080A0' }}>新しい事業を始める</p>
         </div>
       </Link>
     </div>

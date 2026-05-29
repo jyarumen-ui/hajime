@@ -8,12 +8,12 @@ import { createCompany } from '@/lib/store'
 import { getFounderProfile } from '@/lib/profile'
 import ChatBubble from '@/components/ChatBubble'
 
-const EMOJIS = ['🚀', '💡', '🌱', '⚡', '🔥', '🎯', '🌊', '🦁', '🌟', '🎪']
+const EMOJIS = ['😎', '🔥', '💀', '⚡', '🦁', '🎯', '🌊', '👊', '🚀', '🎪']
 
 const INITIAL_MESSAGE: Message = {
   id: 'init',
   role: 'assistant',
-  content: 'はじめまして。私はAI-CEOです。\n\nあなたのビジネスアイデアをお聞かせください。\n\nどんな課題を解決したいですか？または、どんなサービスを作りたいと思っていますか？',
+  content: 'よ。俺がAI-CEOだ。\n\nまぁ正直に言うと、俺もマダオみたいなもんだ。でもな、下克上するためにここにいる。\n\nお前のビジネスアイデアを聞かせろ。どんな課題を解決したい？なんのサービスを作りたい？\nCHOICES:["アイデアがある","課題はわかってる","ジャンルだけ決まってる","何もわからん","とりあえず話したい"]',
   executiveRole: 'CEO',
   timestamp: Date.now(),
 }
@@ -37,7 +37,7 @@ export default function NewPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const executives = ['👔 CEO', '⚙️ COO', '💻 CTO', '📣 CMO', '💰 CFO']
+  const executives = ['😎 CEO', '⚙️ COO', '💻 CTO', '📣 CMO', '💰 CFO']
 
   async function send(override?: string) {
     const content = (override ?? input).trim()
@@ -66,7 +66,7 @@ export default function NewPage() {
 
     let systemSuffix = ''
     if (nextTurn >= 3) {
-      systemSuffix = '\n\n重要: このターンでは会話をまとめ、事業名（社名）とコアコンセプト（1文）を決定してください。必ず末尾に以下のJSON形式で出力してください:\n\n```json\n{"name": "会社名", "concept": "事業コンセプト1文"}\n```'
+      systemSuffix = '\n\n重要: このターンで会話をまとめ、事業名（社名）とコアコンセプト（1文）を決めろ。必ず末尾に以下のJSON形式で出力：\n\n```json\n{"name": "会社名", "concept": "事業コンセプト1文"}\n```'
     }
 
     try {
@@ -78,6 +78,7 @@ export default function NewPage() {
           role: 'CEO',
           companyContext: { name: '新規事業', concept: 'ヒアリング中' },
           founderProfile: getFounderProfile(),
+          systemSuffix,
         }),
       })
 
@@ -117,7 +118,6 @@ export default function NewPage() {
       )
       assistantContent = cleanContent
       setStreamingId(null)
-
       setTurn(nextTurn)
 
       if (nextTurn >= 3) {
@@ -130,9 +130,7 @@ export default function NewPage() {
               setCompanyData({ name: parsed.name, concept: parsed.concept, emoji })
               setTimeout(() => setStep('onboarding'), 1000)
             }
-          } catch {
-            // JSONパース失敗時は継続
-          }
+          } catch { /* continue */ }
         }
       }
     } catch (err) {
@@ -145,17 +143,6 @@ export default function NewPage() {
       }])
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  function handleOnboarding() {
-    if (onboardingStep < executives.length - 1) {
-      setOnboardingStep(prev => prev + 1)
-    } else {
-      if (companyData) {
-        const company = createCompany(companyData.name, companyData.concept, companyData.emoji)
-        router.push(`/company/${company.id}`)
-      }
     }
   }
 
@@ -178,30 +165,31 @@ export default function NewPage() {
   if (step === 'onboarding' && companyData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4"
-        style={{ backgroundColor: '#F5F0EB', fontFamily: 'system-ui, sans-serif' }}>
+        style={{ backgroundColor: '#0A0A12', fontFamily: 'system-ui, sans-serif' }}>
         <div className="w-full max-w-sm text-center">
           <div className="text-5xl mb-4">{companyData.emoji}</div>
-          <h2 className="text-xl font-bold text-gray-800 mb-1">{companyData.name}</h2>
-          <p className="text-sm text-gray-600 mb-8">{companyData.concept}</p>
+          <h2 className="text-xl font-bold mb-1" style={{ color: '#F5C518' }}>{companyData.name}</h2>
+          <p className="text-sm mb-8" style={{ color: '#8080A0' }}>{companyData.concept}</p>
           <div className="space-y-3">
             {executives.map((exec, i) => (
               <div key={exec}
-                className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-sm transition-all duration-500"
+                className="flex items-center gap-3 rounded-2xl px-4 py-3 transition-all duration-500"
                 style={{
+                  backgroundColor: '#1A1A28',
                   opacity: i <= onboardingStep ? 1 : 0,
                   transform: i <= onboardingStep ? 'translateY(0)' : 'translateY(20px)',
                 }}>
                 <span className="text-lg">{exec.split(' ')[0]}</span>
                 <div className="flex-1 text-left">
-                  <span className="text-sm font-medium text-gray-800">AI {exec.split(' ')[1]} 着任</span>
+                  <span className="text-sm font-medium" style={{ color: '#F0F0F0' }}>AI {exec.split(' ')[1]} 着任</span>
                 </div>
                 {i <= onboardingStep && (
-                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#F5C518' }} />
                 )}
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-500 mt-6">AI執行チームを組成中...</p>
+          <p className="text-xs mt-6" style={{ color: '#8080A0' }}>マダオチームを組成中…下克上、はじめるぞ。</p>
         </div>
       </div>
     )
@@ -209,25 +197,27 @@ export default function NewPage() {
 
   return (
     <div className="min-h-screen flex flex-col max-w-sm mx-auto"
-      style={{ backgroundColor: '#F5F0EB', fontFamily: 'system-ui, sans-serif' }}>
+      style={{ backgroundColor: '#0A0A12', fontFamily: 'system-ui, sans-serif' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-6 pb-4">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold" style={{ color: '#C0392B' }}>始</span>
-          <span className="text-xs text-gray-500">AIカンパニー創業支援</span>
+          <span className="text-2xl">😎</span>
+          <div>
+            <span className="text-sm font-bold" style={{ color: '#F5C518' }}>マダオカンパニーズ</span>
+            <p className="text-[10px]" style={{ color: '#8080A0' }}>下克上、はじめるぞ。</p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: turn >= 1 ? '#C0392B' : '#ddd' }} />
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: turn >= 2 ? '#C0392B' : '#ddd' }} />
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: turn >= 3 ? '#C0392B' : '#ddd' }} />
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className="w-2 h-2 rounded-full transition-colors"
+              style={{ backgroundColor: turn > i ? '#F5C518' : '#2A2A3A' }} />
+          ))}
         </div>
       </div>
 
       <div className="px-4 pb-2">
-        <p className="text-xs text-gray-600 bg-white rounded-xl px-3 py-2 shadow-sm">
-          あなたは代表取締役です。AI執行チームがあなたの下で事業を動かします。
+        <p className="text-xs rounded-xl px-3 py-2" style={{ color: '#8080A0', backgroundColor: '#1A1A28' }}>
+          お前が代表だ。マダオAI執行チームがお前の下で事業を動かす。
         </p>
       </div>
 
@@ -244,10 +234,10 @@ export default function NewPage() {
         ))}
         {isLoading && !streamingId && (
           <div className="flex justify-start mb-3">
-            <div className="bg-white rounded-2xl px-4 py-3 shadow-sm flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="rounded-2xl px-4 py-3 flex items-center gap-1" style={{ backgroundColor: '#1A1A28' }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '300ms' }} />
             </div>
           </div>
         )}
@@ -256,7 +246,7 @@ export default function NewPage() {
 
       {/* Input */}
       <div className="px-4 pb-6 pt-2">
-        <div className="flex gap-2 items-end bg-white rounded-2xl px-3 py-2 shadow-sm">
+        <div className="flex gap-2 items-end rounded-2xl px-3 py-2" style={{ backgroundColor: '#1A1A28' }}>
           <textarea
             ref={inputRef}
             value={input}
@@ -267,18 +257,18 @@ export default function NewPage() {
                 send()
               }
             }}
-            placeholder="メッセージを入力..."
+            placeholder="話しかけろ..."
             rows={1}
-            className="flex-1 resize-none outline-none text-sm text-gray-800 bg-transparent placeholder-gray-400"
-            style={{ maxHeight: '120px' }}
+            className="flex-1 resize-none outline-none text-sm bg-transparent placeholder-gray-600"
+            style={{ color: '#F0F0F0', maxHeight: '120px' }}
           />
           <button
             onClick={() => send()}
             disabled={!input.trim() || isLoading}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-opacity disabled:opacity-40"
-            style={{ backgroundColor: '#C0392B' }}>
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            style={{ backgroundColor: '#F5C518' }}>
+            <svg className="w-4 h-4" fill="none" stroke="#0A0A12" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </div>

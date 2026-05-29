@@ -17,8 +17,8 @@ export default function ChatBubble({ message, isStreaming, onChoice, onContinue 
   if (isUser) {
     return (
       <div className="flex justify-end mb-3">
-        <div className="max-w-[80%] rounded-2xl rounded-tr-sm px-4 py-3 text-white text-sm leading-relaxed"
-          style={{ backgroundColor: '#8B4513' }}>
+        <div className="max-w-[80%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed"
+          style={{ backgroundColor: '#2A2A3A', color: '#F0F0F0' }}>
           {message.content}
         </div>
       </div>
@@ -35,16 +35,17 @@ export default function ChatBubble({ message, isStreaming, onChoice, onContinue 
         {exec && (
           <div className="flex items-center gap-1 mb-1 ml-1">
             <span className="text-xs">{exec.emoji}</span>
-            <span className="text-xs font-medium" style={{ color: exec.color }}>{exec.name}</span>
+            <span className="text-xs font-bold" style={{ color: '#F5C518' }}>{exec.name}</span>
           </div>
         )}
-        <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow-sm text-gray-800 whitespace-pre-wrap">
+        <div className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap"
+          style={{ backgroundColor: '#1A1A28', color: '#F0F0F0' }}>
           {text}
           {isStreaming && (
             <span className="inline-flex gap-0.5 ml-1">
-              <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1 h-1 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-1 h-1 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '0ms' }} />
+              <span className="w-1 h-1 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '150ms' }} />
+              <span className="w-1 h-1 rounded-full animate-bounce" style={{ backgroundColor: '#F5C518', animationDelay: '300ms' }} />
             </span>
           )}
         </div>
@@ -52,10 +53,10 @@ export default function ChatBubble({ message, isStreaming, onChoice, onContinue 
         {showContinue && (
           <button
             onClick={onContinue}
-            className="mt-2 w-full text-xs px-3 py-2 rounded-xl border border-dashed flex items-center justify-center gap-1.5 transition-all hover:bg-orange-50"
-            style={{ borderColor: '#C0392B', color: '#C0392B' }}>
+            className="mt-2 w-full text-xs px-3 py-2 rounded-xl border border-dashed flex items-center justify-center gap-1.5 transition-all"
+            style={{ borderColor: '#F5C518', color: '#F5C518', backgroundColor: '#F5C51810' }}>
             <span>📖</span>
-            <span>途中で切れました — 続きを読む</span>
+            <span>途中で切れた — 続きを読む</span>
           </button>
         )}
 
@@ -65,19 +66,19 @@ export default function ChatBubble({ message, isStreaming, onChoice, onContinue 
               <button
                 key={i}
                 onClick={() => onChoice(choice)}
-                className="text-left text-xs px-3 py-2 rounded-xl border transition-all hover:shadow-sm active:scale-95"
+                className="text-left text-xs px-3 py-2 rounded-xl border transition-all active:scale-95"
                 style={{
-                  borderColor: exec?.color ?? '#ddd',
-                  color: exec?.color ?? '#333',
-                  backgroundColor: `${exec?.color ?? '#ccc'}10`,
+                  borderColor: '#2A2A3A',
+                  color: '#F0F0F0',
+                  backgroundColor: '#1A1A28',
                 }}>
-                <span className="font-bold mr-1.5">{i + 1}.</span>{choice}
+                <span className="font-bold mr-1.5" style={{ color: '#F5C518' }}>{i + 1}.</span>{choice}
               </button>
             ))}
             <button
               onClick={() => onChoice('')}
-              className="text-left text-xs px-3 py-2 rounded-xl border border-dashed transition-all hover:bg-gray-50 text-gray-400"
-              style={{ borderColor: '#ccc' }}>
+              className="text-left text-xs px-3 py-2 rounded-xl border border-dashed transition-all"
+              style={{ borderColor: '#2A2A3A', color: '#8080A0' }}>
               ✏️ その他（自由入力）
             </button>
           </div>

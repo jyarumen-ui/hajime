@@ -14,28 +14,29 @@ const statusLabel: Record<Company['status'], string> = {
 }
 
 const statusColor: Record<Company['status'], string> = {
-  planning: '#8B4513',
-  beta: '#2E4057',
-  launched: '#1A6B3A',
+  planning: '#8080A0',
+  beta: '#1DA1F2',
+  launched: '#F5C518',
 }
 
 export default function CompanyCard({ company }: Props) {
   return (
     <Link href={`/company/${company.id}`}>
-      <div className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-amber-100">
+      <div className="rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+        style={{ backgroundColor: '#1A1A28', border: '1px solid #2A2A3A' }}>
         <div className="flex items-start justify-between mb-2">
           <span className="text-3xl">{company.emoji}</span>
-          <span className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
-            style={{ backgroundColor: statusColor[company.status] }}>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+            style={{ backgroundColor: statusColor[company.status] + '22', color: statusColor[company.status] }}>
             {statusLabel[company.status]}
           </span>
         </div>
-        <h3 className="font-bold text-gray-800 text-sm mb-1 truncate">{company.name}</h3>
-        <p className="text-xs text-gray-500 line-clamp-2 mb-3">{company.concept}</p>
-        <div className="border-t border-amber-50 pt-2">
+        <h3 className="font-bold text-sm mb-1 truncate" style={{ color: '#F0F0F0' }}>{company.name}</h3>
+        <p className="text-xs line-clamp-2 mb-3" style={{ color: '#8080A0' }}>{company.concept}</p>
+        <div className="pt-2" style={{ borderTop: '1px solid #2A2A3A' }}>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-500">ARR</span>
-            <span className="text-sm font-bold" style={{ color: '#C0392B' }}>
+            <span className="text-xs" style={{ color: '#8080A0' }}>ARR</span>
+            <span className="text-sm font-bold" style={{ color: '#F5C518' }}>
               ¥{company.arr.toLocaleString()}
             </span>
           </div>
