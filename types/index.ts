@@ -33,6 +33,7 @@ export interface Company {
   agentCount: number
   status: 'planning' | 'beta' | 'launched'
   conversations: Record<ExecutiveRole, Message[]>
+  history: Partial<Record<ExecutiveRole, Message[]>>
   summaries: Partial<Record<ExecutiveRole, string>>
   userProfile: UserProfile
   createdAt: number

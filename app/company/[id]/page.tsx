@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { v4 as uuidv4 } from 'uuid'
 import type { Company, ExecutiveRole, Message } from '@/types'
-import { getCompany, addMessage } from '@/lib/store'
+import { getCompany, addMessage, saveCompany } from '@/lib/store'
 import { EXECUTIVE_INFO } from '@/lib/executives'
 import { getFounderProfile } from '@/lib/profile'
+import { getSyncId, pullSync, pushSync } from '@/lib/sync'
 import ExecutiveBar from '@/components/ExecutiveBar'
 import ChatBubble from '@/components/ChatBubble'
 
@@ -18,23 +19,38 @@ export default function CompanyPage() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [streamingId, setStreamingId] = useState<string | null>(null)
+  const [syncing, setSyncing] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const c = getCompany(id)
-    if (!c) {
-      router.push('/')
-      return
+    async function load() {
+      const syncId = getSyncId()
+      if (syncId) {
+        setSyncing(true)
+        try {
+          const remote = await pullSync(syncId)
+          if (remote) {
+            const { saveCompany: sc } = await import('@/lib/store')
+            remote.forEach(c => sc(c))
+          }
+        } catch { /* ignore */ } finally {
+          setSyncing(false)
+        }
+      }
+      const c = getCompany(id)
+      if (!c) { router.push('/'); return }
+      setCompany(c)
     }
-    setCompany(c)
+    load()
   }, [id, router])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [company?.conversations, activeRole])
+  }, [company?.history, company?.conversations, activeRole])
 
-  const messages = company?.conversations[activeRole] ?? []
+  // 表示はhistory（全履歴）、APIはconversations（直近+要約）
+  const messages = company?.history?.[activeRole] ?? company?.conversations[activeRole] ?? []
   const execInfo = EXECUTIVE_INFO[activeRole]
 
   async function send(override?: string) {
@@ -99,25 +115,35 @@ export default function CompanyPage() {
         assistantContent += decoder.decode(value, { stream: true })
         setCompany(prev => {
           if (!prev) return prev
-          const updatedConvs = {
-            ...prev.conversations,
-            [activeRole]: prev.conversations[activeRole].map(m =>
-              m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
-            ),
+          return {
+            ...prev,
+            conversations: {
+              ...prev.conversations,
+              [activeRole]: prev.conversations[activeRole].map(m =>
+                m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
+              ),
+            },
+            history: {
+              ...prev.history,
+              [activeRole]: (prev.history?.[activeRole] ?? []).map(m =>
+                m.id === assistantMsg.id ? { ...m, content: assistantContent } : m
+              ),
+            },
           }
-          return { ...prev, conversations: updatedConvs }
         })
       }
 
-      // 途中切れ検出
       const isTruncated = assistantContent.endsWith('__TRUNCATED__')
       const cleanContent = isTruncated
         ? assistantContent.slice(0, -'__TRUNCATED__'.length).trimEnd()
         : assistantContent
 
-      // 最終メッセージをlocalStorageに反映
       const finalCompany = getCompany(company.id)!
       finalCompany.conversations[activeRole] = finalCompany.conversations[activeRole].map(m =>
+        m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m
+      )
+      finalCompany.history = finalCompany.history ?? {}
+      finalCompany.history[activeRole] = (finalCompany.history[activeRole] ?? []).map(m =>
         m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m
       )
       setCompany(prev => {
@@ -130,12 +156,18 @@ export default function CompanyPage() {
               m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m
             ),
           },
+          history: {
+            ...prev.history,
+            [activeRole]: (prev.history?.[activeRole] ?? []).map(m =>
+              m.id === assistantMsg.id ? { ...m, content: cleanContent, isTruncated } : m
+            ),
+          },
         }
       })
-      const { saveCompany, getCompanies } = await import('@/lib/store')
-      saveCompany(finalCompany)
+      const { saveCompany: sc, getCompanies } = await import('@/lib/store')
+      sc(finalCompany)
 
-      // 16件超えたら古いメッセージを自動要約
+      // 16件超えたら古いメッセージを自動要約（historyは保持）
       const allMsgs = finalCompany.conversations[activeRole]
       if (allMsgs.length > 16) {
         const toSummarize = allMsgs.slice(0, allMsgs.length - 8)
@@ -153,7 +185,8 @@ export default function CompanyPage() {
           const { summary } = await sumRes.json()
           finalCompany.summaries = { ...finalCompany.summaries, [activeRole]: summary }
           finalCompany.conversations[activeRole] = keep
-          saveCompany(finalCompany)
+          // historyはそのまま保持（全履歴は消さない）
+          sc(finalCompany)
           setCompany({ ...finalCompany })
         }
       }
@@ -171,15 +204,14 @@ export default function CompanyPage() {
           }),
         }).then(r => r.json()).then(async ({ profile }) => {
           if (profile) {
-            const { saveCompany: sc, getCompany: gc } = await import('@/lib/store')
+            const { saveCompany: sc2, getCompany: gc } = await import('@/lib/store')
             const latest = gc(company.id)
-            if (latest) { latest.userProfile = profile; sc(latest) }
+            if (latest) { latest.userProfile = profile; sc2(latest) }
           }
         }).catch(() => {})
       }
 
-      // バックグラウンドで同期
-      const { pushSync } = await import('@/lib/sync')
+      // バックグラウンドで同期（毎回自動push）
       pushSync(getCompanies()).catch(() => {})
     } catch (err) {
       const errMsg: Message = {
@@ -198,10 +230,7 @@ export default function CompanyPage() {
   }
 
   function handleChoice(choice: string) {
-    if (choice === '') {
-      inputRef.current?.focus()
-      return
-    }
+    if (choice === '') { inputRef.current?.focus(); return }
     send(choice)
   }
 
@@ -209,7 +238,13 @@ export default function CompanyPage() {
     send('続きをお願いします')
   }
 
-  if (!company) return null
+  if (!company) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0EB' }}>
+        <p className="text-sm text-gray-400">{syncing ? '最新データを取得中…' : '読み込み中…'}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col max-w-sm mx-auto"
@@ -224,7 +259,10 @@ export default function CompanyPage() {
             </svg>
             ダッシュボード
           </button>
-          <span className="text-lg font-bold" style={{ color: '#C0392B' }}>始</span>
+          <div className="flex items-center gap-2">
+            {syncing && <span className="text-[10px] text-gray-400 animate-pulse">同期中…</span>}
+            <span className="text-lg font-bold" style={{ color: '#C0392B' }}>始</span>
+          </div>
         </div>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-2xl">{company.emoji}</span>
@@ -242,6 +280,9 @@ export default function CompanyPage() {
           <span>{execInfo.emoji}</span>
           <span className="text-xs font-medium" style={{ color: execInfo.color }}>{execInfo.name}</span>
           <span className="text-xs text-gray-400">— {execInfo.title}</span>
+          {messages.length > 0 && (
+            <span className="ml-auto text-[10px] text-gray-400">{messages.length}件</span>
+          )}
         </div>
       </div>
 

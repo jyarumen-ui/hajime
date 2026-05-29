@@ -33,12 +33,20 @@ export default function DashboardPage() {
 
     const id = getSyncId()
     if (id) {
+      // 既存の同期IDがあれば自動pull
       pullSync(id).then(remote => {
         if (remote && remote.length > 0) {
           remote.forEach(c => saveCompany(c))
           setCompanies(getCompanies())
         }
       })
+    } else {
+      // 同期IDがなければ自動生成（初回のみ）
+      initSync(getCompanies()).then(newId => {
+        setSyncIdState(newId)
+        setSyncStatus('ok')
+        setTimeout(() => setSyncStatus('idle'), 3000)
+      }).catch(() => {})
     }
   }, [router])
 
@@ -187,7 +195,21 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-        {syncId && <div className="text-[9px] text-gray-400 break-all">同期ID: {syncId}</div>}
+        {syncId && (
+          <div className="flex items-center gap-2 mt-1">
+            <div className="text-[9px] text-gray-400 break-all flex-1">同期ID: {syncId}</div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(syncId)
+                setSyncStatus('ok')
+                setTimeout(() => setSyncStatus('idle'), 2000)
+              }}
+              className="text-[9px] px-2 py-0.5 rounded-md border text-gray-500 hover:bg-gray-50 flex-shrink-0"
+              style={{ borderColor: '#ddd' }}>
+              コピー
+            </button>
+          </div>
+        )}
         {showImport && (
           <div className="mt-2 flex gap-1.5">
             <input value={importInput} onChange={e => setImportInput(e.target.value)}

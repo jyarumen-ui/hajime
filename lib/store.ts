@@ -9,7 +9,7 @@ export function getCompanies(): Company[] {
     const data = localStorage.getItem(STORAGE_KEY)
     const parsed: Company[] = data ? JSON.parse(data) : []
     // 旧データにsummariesがない場合は補完
-    return parsed.map(c => ({ ...c, summaries: c.summaries ?? {}, userProfile: c.userProfile ?? {} }))
+    return parsed.map(c => ({ ...c, summaries: c.summaries ?? {}, userProfile: c.userProfile ?? {}, history: c.history ?? {} }))
   } catch {
     return []
   }
@@ -44,6 +44,7 @@ export function createCompany(name: string, concept: string, emoji: string): Com
     agentCount: Math.floor(Math.random() * 5) + 1,
     status: 'planning',
     conversations,
+    history: {},
     summaries: {},
     userProfile: {},
     createdAt: Date.now(),
@@ -56,5 +57,17 @@ export function addMessage(companyId: string, role: ExecutiveRole, message: Mess
   const company = getCompany(companyId)
   if (!company) return
   company.conversations[role] = [...company.conversations[role], message]
+  company.history = company.history ?? {}
+  company.history[role] = [...(company.history[role] ?? []), message]
+  saveCompany(company)
+}
+
+export function updateMessageInHistory(companyId: string, role: ExecutiveRole, msgId: string, content: string, isTruncated?: boolean): void {
+  const company = getCompany(companyId)
+  if (!company) return
+  company.history = company.history ?? {}
+  company.history[role] = (company.history[role] ?? []).map(m =>
+    m.id === msgId ? { ...m, content, isTruncated: isTruncated ?? m.isTruncated } : m
+  )
   saveCompany(company)
 }
